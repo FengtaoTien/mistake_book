@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../core/api/tutor_api.dart';
 
 class TutorScreen extends ConsumerStatefulWidget {
@@ -16,15 +14,12 @@ class _TutorScreenState extends ConsumerState<TutorScreen> {
   String? _sessionId;
   final _messages = <Map<String, dynamic>>[];
   final _textCtl = TextEditingController();
-  final _recorder = AudioRecorder();
   final _player = AudioPlayer();
-  bool _recording = false;
   bool _loading = false;
 
   @override
   void dispose() {
     _textCtl.dispose();
-    _recorder.dispose();
     _player.dispose();
     super.dispose();
   }
@@ -60,35 +55,6 @@ class _TutorScreenState extends ConsumerState<TutorScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('发送失败: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _recordAndSend() async {
-    if (_recording) {
-      final path = await _recorder.stop();
-      setState(() => _recording = false);
-      if (path == null || _sessionId == null) return;
-      setState(() {
-        _messages.add({"role": "user", "content": "🎤 语音消息..."});
-        _loading = true;
-      });
-      try {
-        final data = await ref.read(tutorApiProvider).chat(_sessionId!, audioPath: path);
-        final msgs = data['messages'] as List<dynamic>;
-        setState(() => _messages..clear()..addAll(msgs.cast<Map<String, dynamic>>()));
-        _playAudio();
-      } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('发送失败: $e')));
-      } finally {
-        if (mounted) setState(() => _loading = false);
-      }
-    } else {
-      if (await _recorder.hasPermission()) {
-        final dir = await getTemporaryDirectory();
-        final path = '${dir.path}/tutor_audio.mp4';
-        await _recorder.start(RecordConfig(), path: path);
-        setState(() => _recording = true);
-      }
     }
   }
 
@@ -164,10 +130,6 @@ class _TutorScreenState extends ConsumerState<TutorScreen> {
           ]),
           child: Row(
             children: [
-              IconButton(
-                icon: Icon(_recording ? Icons.mic : Icons.mic_none, color: _recording ? Colors.red : null),
-                onPressed: _recordAndSend,
-              ),
               Expanded(
                 child: TextField(
                   controller: _textCtl,
