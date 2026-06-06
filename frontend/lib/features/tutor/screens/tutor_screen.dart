@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../../../core/api/api_config.dart';
 import '../../../core/api/tutor_api.dart';
 
 class TutorScreen extends ConsumerStatefulWidget {
@@ -61,7 +62,7 @@ class _TutorScreenState extends ConsumerState<TutorScreen> {
   void _playAudio() {
     final last = _messages.isNotEmpty ? _messages.last : null;
     if (last != null && last['role'] == 'assistant' && last['audio_url'] != null) {
-      _player.play(UrlSource('http://10.0.2.2:8000${last['audio_url']}'));
+      _player.play(UrlSource('$apiBaseUrl${last['audio_url']}'));
     }
   }
 

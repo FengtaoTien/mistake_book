@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/api/api_config.dart';
 import '../../../core/api/mistake_api.dart';
 import '../../../core/api/ocr_api.dart';
 
@@ -113,7 +114,7 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  'http://10.0.2.2:8000$_imageUrl',
+                  '$apiBaseUrl$_imageUrl',
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
