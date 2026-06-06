@@ -1,0 +1,183 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/api/mistake_api.dart';
+import '../../../core/api/ocr_api.dart';
+
+class MistakeAddScreen extends ConsumerStatefulWidget {
+  const MistakeAddScreen({super.key});
+
+  @override
+  ConsumerState<MistakeAddScreen> createState() => _MistakeAddScreenState();
+}
+
+class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
+  final _form = GlobalKey<FormState>();
+  final _subjectCtl = TextEditingController();
+  final _questionCtl = TextEditingController();
+  final _answerCtl = TextEditingController();
+  String _mistakeReason = '粗心';
+  int _difficulty = 3;
+  final _tagsCtl = TextEditingController();
+  final _sourceCtl = TextEditingController();
+  bool _loading = false;
+
+  static const _reasons = ['粗心', '概念不清', '思路错误', '计算错误', '审题错误', '其他'];
+
+  @override
+  void dispose() {
+    _subjectCtl.dispose();
+    _questionCtl.dispose();
+    _answerCtl.dispose();
+    _tagsCtl.dispose();
+    _sourceCtl.dispose();
+    super.dispose();
+  }
+
+  String? _imageUrl;
+  bool _ocrLoading = false;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final x = await picker.pickImage(source: ImageSource.camera);
+    if (x == null || !mounted) return;
+    setState(() => _ocrLoading = true);
+    try {
+      final result = await ref.read(ocrApiProvider).recognize(x.path);
+      _questionCtl.text = result.text;
+      _imageUrl = result.imageUrl;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('识别完成，共 ${result.text.length} 字')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OCR 识别失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _ocrLoading = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() => _loading = true);
+    try {
+      final tags = _tagsCtl.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      await ref.read(mistakeApiProvider).create({
+        'subject': _subjectCtl.text,
+        'question_text': _questionCtl.text,
+        'answer_text': _answerCtl.text,
+        'mistake_reason': _mistakeReason,
+        'difficulty': _difficulty,
+        'tags': tags,
+        'source': _sourceCtl.text,
+      });
+      if (mounted) context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('提交失败: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('添加错题')),
+      body: Form(
+        key: _form,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            OutlinedButton.icon(
+              onPressed: _ocrLoading ? null : _pickImage,
+              icon: _ocrLoading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.camera_alt),
+              label: Text(_ocrLoading ? '识别中...' : '拍照录入'),
+            ),
+            if (_imageUrl != null) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  'http://10.0.2.2:8000$_imageUrl',
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _subjectCtl,
+              decoration: const InputDecoration(labelText: '科目', border: OutlineInputBorder()),
+              validator: (v) => (v == null || v.isEmpty) ? '请输入科目' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _questionCtl,
+              decoration: const InputDecoration(labelText: '题目', border: OutlineInputBorder()),
+              maxLines: 4,
+              validator: (v) => (v == null || v.isEmpty) ? '请输入题目' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _answerCtl,
+              decoration: const InputDecoration(labelText: '正确答案', border: OutlineInputBorder()),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _mistakeReason,
+              decoration: const InputDecoration(labelText: '错因', border: OutlineInputBorder()),
+              items: _reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+              onChanged: (v) => setState(() => _mistakeReason = v!),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text('难度: '),
+                for (int i = 1; i <= 5; i++)
+                  IconButton(
+                    icon: Icon(i <= _difficulty ? Icons.star : Icons.star_border, color: Colors.amber),
+                    onPressed: () => setState(() => _difficulty = i),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _tagsCtl,
+              decoration: const InputDecoration(labelText: '知识点标签（逗号分隔）', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _sourceCtl,
+              decoration: const InputDecoration(labelText: '来源（如：期中考试）', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _loading ? null : _submit,
+              child: _loading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('保存'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

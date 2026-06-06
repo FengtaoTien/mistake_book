@@ -1,0 +1,27 @@
+[project]
+name = "mistake-book-backend"
+version = "0.1.0"
+description = "AI Mistake Book backend"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg",
+    "alembic",
+    "python-dotenv",
+    "pydantic>=2.0",
+    "python-multipart",
+    "openai",
+    "httpx",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
