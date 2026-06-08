@@ -74,7 +74,7 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: '裁剪题目区域',
-          activeControlsWidgetColor: Theme.of(context).primaryColor,
+          lockAspectRatio: false,
           showCropGrid: true,
         ),
         IOSUiSettings(title: '裁剪题目区域', aspectRatioLockEnabled: false, resetButtonHidden: false),
