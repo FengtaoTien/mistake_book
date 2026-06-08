@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/api/api_config.dart';
 import '../../../core/api/mistake_api.dart';
 import '../../../core/models/mistake.dart';
 import '../../../core/providers/mistake_provider.dart';
@@ -89,11 +90,16 @@ class MistakeListScreen extends ConsumerWidget {
                           await context.push('/add', extra: m);
                           ref.invalidate(mistakeListProvider);
                         },
-                        leading: CircleAvatar(
-                          backgroundColor: _subjectColor(m.subject),
-                          child: Text(m.subject.isNotEmpty ? m.subject[0] : '?',
-                              style: const TextStyle(color: Colors.white)),
-                        ),
+                        leading: m.imageUrl != null && m.imageUrl!.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  '$apiBaseUrl${m.imageUrl}',
+                                  width: 48, height: 48, fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => _subjectAvatar(m),
+                                ),
+                              )
+                            : _subjectAvatar(m),
                         title: Text(m.questionText, maxLines: 3, overflow: TextOverflow.ellipsis),
                         subtitle: Text(
                           '${m.mistakeReason} · ${m.tags.join(", ")}',
@@ -140,6 +146,14 @@ class MistakeListScreen extends ConsumerWidget {
         },
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  Widget _subjectAvatar(Mistake m) {
+    return CircleAvatar(
+      backgroundColor: _subjectColor(m.subject),
+      child: Text(m.subject.isNotEmpty ? m.subject[0] : '?',
+          style: const TextStyle(color: Colors.white)),
     );
   }
 
