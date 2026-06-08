@@ -94,7 +94,7 @@ class MistakeListScreen extends ConsumerWidget {
                           child: Text(m.subject.isNotEmpty ? m.subject[0] : '?',
                               style: const TextStyle(color: Colors.white)),
                         ),
-                        title: Text(m.questionText, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        title: Text(m.questionText, maxLines: 3, overflow: TextOverflow.ellipsis),
                         subtitle: Text(
                           '${m.mistakeReason} · ${m.tags.join(", ")}',
                           maxLines: 1,

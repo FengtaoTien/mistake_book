@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../../../core/api/api_config.dart';
 import '../../../core/api/mistake_api.dart';
 import '../../../core/api/ocr_api.dart';
@@ -67,9 +68,17 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
     final picker = ImagePicker();
     final x = await picker.pickImage(source: ImageSource.camera);
     if (x == null || !mounted) return;
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: x.path,
+      uiSettings: [
+        AndroidUiSettings(toolbarTitle: '裁剪题目区域'),
+        IOSUiSettings(title: '裁剪题目区域'),
+      ],
+    );
+    if (cropped == null || !mounted) return;
     setState(() => _ocrLoading = true);
     try {
-      final result = await ref.read(ocrApiProvider).recognize(x.path);
+      final result = await ref.read(ocrApiProvider).recognize(cropped.path);
       _questionCtl.text = result.text;
       _imageUrl = result.imageUrl;
       if (mounted) {
@@ -162,14 +171,16 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
             TextFormField(
               controller: _questionCtl,
               decoration: const InputDecoration(labelText: '题目', border: OutlineInputBorder()),
-              maxLines: 4,
+              maxLines: 8,
+              minLines: 4,
               validator: (v) => (v == null || v.isEmpty) ? '请输入题目' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _answerCtl,
               decoration: const InputDecoration(labelText: '正确答案', border: OutlineInputBorder()),
-              maxLines: 3,
+              maxLines: 5,
+              minLines: 2,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
