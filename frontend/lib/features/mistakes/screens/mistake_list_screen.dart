@@ -14,7 +14,7 @@ class MistakeListScreen extends ConsumerWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('确认删除'),
-        content: Text('删除: ${m.questionText.substring(0, 20)}...'),
+        content: Text('删除: ${m.questionText.length > 20 ? '${m.questionText.substring(0, 20)}...' : m.questionText}'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除', style: TextStyle(color: Colors.red))),
