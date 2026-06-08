@@ -70,9 +70,14 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
     if (x == null || !mounted) return;
     final cropped = await ImageCropper().cropImage(
       sourcePath: x.path,
+      compressQuality: 80,
       uiSettings: [
-        AndroidUiSettings(toolbarTitle: '裁剪题目区域'),
-        IOSUiSettings(title: '裁剪题目区域'),
+        AndroidUiSettings(
+          toolbarTitle: '裁剪题目区域',
+          activeControlsWidgetColor: Theme.of(context).primaryColor,
+          showCropGrid: true,
+        ),
+        IOSUiSettings(title: '裁剪题目区域', aspectRatioLockEnabled: false, resetButtonHidden: false),
       ],
     );
     if (cropped == null || !mounted) return;
@@ -114,6 +119,7 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
         'difficulty': _difficulty,
         'tags': tags,
         'source': _sourceCtl.text,
+        if (_imageUrl != null) 'image_url': _imageUrl,
       };
       if (_isEditing) {
         await ref.read(mistakeApiProvider).update(_editTarget!.id, data);

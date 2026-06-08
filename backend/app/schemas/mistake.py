@@ -21,6 +21,7 @@ class MistakeUpdate(BaseModel):
     mistake_reason: str | None = None
     difficulty: int | None = None
     tags: list[str] | None = None
+    image_url: str | None = None
     correct_count: int | None = None
     is_active: bool | None = None
 
