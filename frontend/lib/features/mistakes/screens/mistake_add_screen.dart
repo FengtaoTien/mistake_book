@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/api/api_config.dart';
 import '../../../core/api/mistake_api.dart';
 import '../../../core/api/ocr_api.dart';
+import '../../../core/models/mistake.dart';
 
 class MistakeAddScreen extends ConsumerStatefulWidget {
   const MistakeAddScreen({super.key});
@@ -23,8 +24,34 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
   final _tagsCtl = TextEditingController();
   final _sourceCtl = TextEditingController();
   bool _loading = false;
+  String? _imageUrl;
+  bool _ocrLoading = false;
+  Mistake? _editTarget;
+  bool get _isEditing => _editTarget != null;
 
   static const _reasons = ['粗心', '概念不清', '思路错误', '计算错误', '审题错误', '其他'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final extra = GoRouterState.of(context).extra;
+      if (extra is Mistake) {
+        final m = extra;
+        setState(() {
+          _editTarget = m;
+          _subjectCtl.text = m.subject;
+          _questionCtl.text = m.questionText;
+          _answerCtl.text = m.answerText;
+          _mistakeReason = m.mistakeReason;
+          _difficulty = m.difficulty;
+          _tagsCtl.text = m.tags.join(", ");
+          _sourceCtl.text = m.source;
+          _imageUrl = m.imageUrl;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -35,9 +62,6 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
     _sourceCtl.dispose();
     super.dispose();
   }
-
-  String? _imageUrl;
-  bool _ocrLoading = false;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -73,7 +97,7 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList();
-      await ref.read(mistakeApiProvider).create({
+      final data = {
         'subject': _subjectCtl.text,
         'question_text': _questionCtl.text,
         'answer_text': _answerCtl.text,
@@ -81,7 +105,12 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
         'difficulty': _difficulty,
         'tags': tags,
         'source': _sourceCtl.text,
-      });
+      };
+      if (_isEditing) {
+        await ref.read(mistakeApiProvider).update(_editTarget!.id, data);
+      } else {
+        await ref.read(mistakeApiProvider).create(data);
+      }
       if (mounted) context.pop();
     } catch (e) {
       if (!mounted) return;
@@ -96,19 +125,20 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('添加错题')),
+      appBar: AppBar(title: Text(_isEditing ? '编辑错题' : '添加错题')),
       body: Form(
         key: _form,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            OutlinedButton.icon(
-              onPressed: _ocrLoading ? null : _pickImage,
-              icon: _ocrLoading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.camera_alt),
-              label: Text(_ocrLoading ? '识别中...' : '拍照录入'),
-            ),
+            if (!_isEditing)
+              OutlinedButton.icon(
+                onPressed: _ocrLoading ? null : _pickImage,
+                icon: _ocrLoading
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.camera_alt),
+                label: Text(_ocrLoading ? '识别中...' : '拍照录入'),
+              ),
             if (_imageUrl != null) ...[
               const SizedBox(height: 8),
               ClipRRect(
@@ -174,7 +204,7 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
               onPressed: _loading ? null : _submit,
               child: _loading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('保存'),
+                  : Text(_isEditing ? '更新' : '保存'),
             ),
           ],
         ),

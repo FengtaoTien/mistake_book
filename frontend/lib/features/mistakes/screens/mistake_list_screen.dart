@@ -1,10 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/api/mistake_api.dart';
+import '../../../core/models/mistake.dart';
 import '../../../core/providers/mistake_provider.dart';
 
 class MistakeListScreen extends ConsumerWidget {
   const MistakeListScreen({super.key});
+
+  Future<void> _delete(WidgetRef ref, Mistake m, BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('删除: ${m.questionText.substring(0, 20)}...'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(mistakeApiProvider).delete(m.id);
+      ref.invalidate(mistakeListProvider);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('删除失败: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,27 +76,40 @@ class MistakeListScreen extends ConsumerWidget {
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (_, i) {
                     final m = list[i];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: _subjectColor(m.subject),
-                        child: Text(m.subject.isNotEmpty ? m.subject[0] : '?',
-                            style: const TextStyle(color: Colors.white)),
-                      ),
-                      title: Text(m.questionText, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      subtitle: Text(
-                        '${m.mistakeReason} · ${m.tags.join(", ")}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ...List.generate(5, (j) => Icon(
-                            Icons.star,
-                            size: 14,
-                            color: j < m.difficulty ? Colors.amber : Colors.grey.shade300,
-                          )),
-                        ],
+                    return Dismissible(
+                      key: ValueKey(m.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
+                      confirmDismiss: (_) async {
+                        await _delete(ref, m, context);
+                        return false;
+                      },
+                      child: ListTile(
+                        onTap: () async {
+                          await context.push('/add', extra: m);
+                          ref.invalidate(mistakeListProvider);
+                        },
+                        leading: CircleAvatar(
+                          backgroundColor: _subjectColor(m.subject),
+                          child: Text(m.subject.isNotEmpty ? m.subject[0] : '?',
+                              style: const TextStyle(color: Colors.white)),
+                        ),
+                        title: Text(m.questionText, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(
+                          '${m.mistakeReason} · ${m.tags.join(", ")}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ...List.generate(5, (j) => Icon(
+                              Icons.star,
+                              size: 14,
+                              color: j < m.difficulty ? Colors.amber : Colors.grey.shade300,
+                            )),
+                          ],
+                        ),
                       ),
                     );
                   },
