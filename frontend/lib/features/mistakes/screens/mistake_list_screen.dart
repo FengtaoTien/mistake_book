@@ -6,10 +6,21 @@ import '../../../core/api/mistake_api.dart';
 import '../../../core/models/mistake.dart';
 import '../../../core/providers/mistake_provider.dart';
 
-class MistakeListScreen extends ConsumerWidget {
+final _subjects = ['全部', '语文', '数学', '英语', '物理', '化学', '历史', '生物'];
+final _grades = ['全部', '三年级', '四年级', '五年级', '初一', '初二', '初三', '高一', '高二', '高三'];
+
+class MistakeListScreen extends ConsumerStatefulWidget {
   const MistakeListScreen({super.key});
 
-  Future<void> _delete(WidgetRef ref, Mistake m, BuildContext context) async {
+  @override
+  ConsumerState<MistakeListScreen> createState() => _MistakeListScreenState();
+}
+
+class _MistakeListScreenState extends ConsumerState<MistakeListScreen> {
+  String _filterSubject = '全部';
+  String _filterGrade = '全部';
+
+  Future<void> _delete(Mistake m) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -26,14 +37,14 @@ class MistakeListScreen extends ConsumerWidget {
       await ref.read(mistakeApiProvider).delete(m.id);
       ref.invalidate(mistakeListProvider);
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('删除失败: $e')));
       }
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final mistakes = ref.watch(mistakeListProvider);
 
     return Scaffold(
@@ -57,32 +68,41 @@ class MistakeListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: mistakes.when(
-        data: (list) => list.isEmpty
-            ? const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.menu_book, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text('还没有错题', style: TextStyle(color: Colors.grey, fontSize: 18)),
-                    Text('点击右下角 + 添加你的第一道错题', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-              )
-            : RefreshIndicator(
+      body: Column(
+        children: [
+          _buildFilter(),
+          Expanded(child: mistakes.when(
+            data: (list) {
+              final filtered = list.where((m) {
+                if (_filterSubject != '全部' && m.subject != _filterSubject) return false;
+                if (_filterGrade != '全部' && m.grade != _filterGrade) return false;
+                return true;
+              }).toList();
+              if (filtered.isEmpty) {
+                return const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.menu_book, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text('没有找到匹配的错题', style: TextStyle(color: Colors.grey, fontSize: 18)),
+                    ],
+                  ),
+                );
+              }
+              return RefreshIndicator(
                 onRefresh: () => ref.refresh(mistakeListProvider.future),
                 child: ListView.separated(
-                  itemCount: list.length,
+                  itemCount: filtered.length,
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (_, i) {
-                    final m = list[i];
+                    final m = filtered[i];
                     return Dismissible(
                       key: ValueKey(m.id),
                       direction: DismissDirection.endToStart,
                       background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
                       confirmDismiss: (_) async {
-                        await _delete(ref, m, context);
+                        await _delete(m);
                         return false;
                       },
                       child: ListTile(
@@ -102,7 +122,7 @@ class MistakeListScreen extends ConsumerWidget {
                             : _subjectAvatar(m),
                         title: Text(m.questionText, maxLines: 3, overflow: TextOverflow.ellipsis),
                         subtitle: Text(
-                          '${m.mistakeReason} · ${m.tags.join(", ")}',
+                          '${m.grade.isNotEmpty ? "$m.grade · " : ""}${m.mistakeReason} · ${m.tags.join(", ")}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -120,24 +140,26 @@ class MistakeListScreen extends ConsumerWidget {
                     );
                   },
                 ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 8),
+                  Text('加载失败', style: TextStyle(color: Colors.grey.shade600)),
+                  const SizedBox(height: 16),
+                  FilledButton.tonal(
+                    onPressed: () => ref.invalidate(mistakeListProvider),
+                    child: const Text('重试'),
+                  ),
+                ],
               ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 8),
-              Text('加载失败', style: TextStyle(color: Colors.grey.shade600)),
-              Text('$e', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-              const SizedBox(height: 16),
-              FilledButton.tonal(
-                onPressed: () => ref.invalidate(mistakeListProvider),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ),
+            ),
+          )),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -145,6 +167,38 @@ class MistakeListScreen extends ConsumerWidget {
           ref.invalidate(mistakeListProvider);
         },
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildFilter() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
+        children: [
+          _filterDropdown(_filterSubject, _subjects, (v) {
+            setState(() => _filterSubject = v!);
+          }),
+          const SizedBox(width: 8),
+          _filterDropdown(_filterGrade, _grades, (v) {
+            setState(() => _filterGrade = v!);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterDropdown(String value, List<String> items, ValueChanged<String?> onChanged) {
+    return Expanded(
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        isDense: true,
+        decoration: InputDecoration(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        items: items.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 14)))).toList(),
+        onChanged: onChanged,
       ),
     );
   }
@@ -159,11 +213,12 @@ class MistakeListScreen extends ConsumerWidget {
 
   Color _subjectColor(String subject) {
     const colors = {
+      '语文': Colors.red,
       '数学': Colors.blue,
+      '英语': Colors.purple,
       '物理': Colors.green,
       '化学': Colors.orange,
-      '英语': Colors.purple,
-      '语文': Colors.red,
+      '历史': Colors.brown,
       '生物': Colors.teal,
     };
     return colors[subject] ?? Colors.grey;

@@ -13,8 +13,12 @@ USER_ID = "default-user"
 
 
 @router.get("/", response_model=list[MistakeResponse])
-async def list_mistakes(db: AsyncSession = Depends(get_db)):
-    return await service.list_mistakes(db, USER_ID)
+async def list_mistakes(
+    subject: str | None = None,
+    grade: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    return await service.list_mistakes(db, USER_ID, subject=subject, grade=grade)
 
 
 @router.get("/{mistake_id}", response_model=MistakeResponse)

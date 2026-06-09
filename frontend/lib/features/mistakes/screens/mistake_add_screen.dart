@@ -17,7 +17,8 @@ class MistakeAddScreen extends ConsumerStatefulWidget {
 
 class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
   final _form = GlobalKey<FormState>();
-  final _subjectCtl = TextEditingController();
+  String _subject = '数学';
+  String _grade = '初一';
   final _questionCtl = TextEditingController();
   final _answerCtl = TextEditingController();
   String _mistakeReason = '粗心';
@@ -30,6 +31,8 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
   Mistake? _editTarget;
   bool get _isEditing => _editTarget != null;
 
+  static const _subjects = ['语文', '数学', '英语', '物理', '化学', '历史', '生物'];
+  static const _grades = ['三年级', '四年级', '五年级', '初一', '初二', '初三', '高一', '高二', '高三'];
   static const _reasons = ['粗心', '概念不清', '思路错误', '计算错误', '审题错误', '其他'];
 
   @override
@@ -41,7 +44,8 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
         final m = extra;
         setState(() {
           _editTarget = m;
-          _subjectCtl.text = m.subject;
+          _subject = m.subject;
+          _grade = m.grade;
           _questionCtl.text = m.questionText;
           _answerCtl.text = m.answerText;
           _mistakeReason = m.mistakeReason;
@@ -56,7 +60,6 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
 
   @override
   void dispose() {
-    _subjectCtl.dispose();
     _questionCtl.dispose();
     _answerCtl.dispose();
     _tagsCtl.dispose();
@@ -112,7 +115,8 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
           .where((e) => e.isNotEmpty)
           .toList();
       final data = {
-        'subject': _subjectCtl.text,
+        'subject': _subject,
+        'grade': _grade,
         'question_text': _questionCtl.text,
         'answer_text': _answerCtl.text,
         'mistake_reason': _mistakeReason,
@@ -168,10 +172,19 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
               ),
             ],
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _subjectCtl,
+            DropdownButtonFormField<String>(
+              initialValue: _subject,
               decoration: const InputDecoration(labelText: '科目', border: OutlineInputBorder()),
-              validator: (v) => (v == null || v.isEmpty) ? '请输入科目' : null,
+              items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              onChanged: (v) => setState(() => _subject = v!),
+              validator: (v) => (v == null || v.isEmpty) ? '请选择科目' : null,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _grade,
+              decoration: const InputDecoration(labelText: '年级', border: OutlineInputBorder()),
+              items: _grades.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+              onChanged: (v) => setState(() => _grade = v!),
             ),
             const SizedBox(height: 12),
             TextFormField(

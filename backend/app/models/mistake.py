@@ -12,7 +12,8 @@ class Mistake(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[str] = mapped_column(String(128), index=True)
-    subject: Mapped[str] = mapped_column(String(64))
+    subject: Mapped[str] = mapped_column(String(32))
+    grade: Mapped[str] = mapped_column(String(16), default="")
     question_text: Mapped[str] = mapped_column(Text, default="")
     answer_text: Mapped[str] = mapped_column(Text, default="")
     mistake_reason: Mapped[str] = mapped_column(String(32), default="")

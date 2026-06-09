@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class MistakeCreate(BaseModel):
     subject: str
+    grade: str = ""
     question_text: str = ""
     answer_text: str = ""
     mistake_reason: str = ""
@@ -16,6 +17,7 @@ class MistakeCreate(BaseModel):
 
 class MistakeUpdate(BaseModel):
     subject: str | None = None
+    grade: str | None = None
     question_text: str | None = None
     answer_text: str | None = None
     mistake_reason: str | None = None
@@ -29,6 +31,7 @@ class MistakeUpdate(BaseModel):
 class MistakeResponse(BaseModel):
     id: UUID
     subject: str
+    grade: str
     question_text: str
     answer_text: str
     mistake_reason: str

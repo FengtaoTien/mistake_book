@@ -1,14 +1,19 @@
 from uuid import UUID
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.mistake import Mistake
 from app.schemas.mistake import MistakeCreate, MistakeUpdate
 
 
-async def list_mistakes(db: AsyncSession, user_id: str) -> list[Mistake]:
+async def list_mistakes(db: AsyncSession, user_id: str, subject: str | None = None, grade: str | None = None) -> list[Mistake]:
+    filters = [Mistake.user_id == user_id, Mistake.is_active.is_(True)]
+    if subject:
+        filters.append(Mistake.subject == subject)
+    if grade:
+        filters.append(Mistake.grade == grade)
     result = await db.execute(
-        select(Mistake).where(Mistake.user_id == user_id, Mistake.is_active.is_(True))
+        select(Mistake).where(and_(*filters))
         .order_by(Mistake.created_at.desc())
     )
     return list(result.scalars().all())

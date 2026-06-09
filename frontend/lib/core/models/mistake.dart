@@ -1,6 +1,7 @@
 class Mistake {
   final String id;
   final String subject;
+  final String grade;
   final String questionText;
   final String answerText;
   final String mistakeReason;
@@ -15,6 +16,7 @@ class Mistake {
   Mistake({
     required this.id,
     required this.subject,
+    this.grade = '',
     this.questionText = '',
     this.answerText = '',
     this.mistakeReason = '',
@@ -30,6 +32,7 @@ class Mistake {
   factory Mistake.fromJson(Map<String, dynamic> json) => Mistake(
     id: json['id'] as String,
     subject: json['subject'] as String? ?? '',
+    grade: json['grade'] as String? ?? '',
     questionText: json['question_text'] as String? ?? '',
     answerText: json['answer_text'] as String? ?? '',
     mistakeReason: json['mistake_reason'] as String? ?? '',
@@ -44,6 +47,7 @@ class Mistake {
 
   Map<String, dynamic> toJson() => {
     'subject': subject,
+    'grade': grade,
     'question_text': questionText,
     'answer_text': answerText,
     'mistake_reason': mistakeReason,
