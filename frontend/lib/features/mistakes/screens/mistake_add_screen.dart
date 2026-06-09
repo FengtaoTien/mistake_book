@@ -173,7 +173,7 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
             ],
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: _subject,
+              initialValue: _subjects.contains(_subject) ? _subject : null,
               decoration: const InputDecoration(labelText: '科目', border: OutlineInputBorder()),
               items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (v) => setState(() => _subject = v!),
@@ -181,7 +181,7 @@ class _MistakeAddScreenState extends ConsumerState<MistakeAddScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              initialValue: _grade,
+              initialValue: _grades.contains(_grade) ? _grade : null,
               decoration: const InputDecoration(labelText: '年级', border: OutlineInputBorder()),
               items: _grades.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
               onChanged: (v) => setState(() => _grade = v!),
